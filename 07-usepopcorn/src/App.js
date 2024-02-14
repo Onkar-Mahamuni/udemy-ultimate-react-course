@@ -57,7 +57,50 @@ export default function App() {
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const query = "";
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+
+  //   // useEffect( async function () {
+  // //   fetch(`https://www.omdbapi.com/?apikey=${KEY}&s=interstellar`)
+  // //     .then((res) => res.json())
+  // //     .then((data) => setMovies(data.Search));
+  // // }, []);
+  // // // Above way of doing it async is not allowed as it can create a race condition
+
+  // useEffect(function () {
+  //   async function fetchMovies() {
+  //     const res = await fetch(
+  //       `https://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+  //     );
+  //     const data = await res.json();
+  //     setMovies(data.Search);
+  //   }
+  //   fetchMovies();
+  // }, []);
+  // // This is the right way of using async function inside useEffect
+
+  // useEffect(function () {
+  //   // useEffects get rendered after the initial render (paint) of UI
+  //   console.log("After initial render");
+  // }, []); // This rendered second because it is first in order of useEffects
+  // // This will only be rendered at the first time
+
+  // useEffect(function () {
+  //   console.log("After every render"); // Will be rendered last as it is the second in effect order
+  // });
+  // // This is in sync with every state (all) so will be rendered every time
+
+  // console.log("During render"); // Will be rendered first as it is part of UI
+  // // This is UI so it will also be rendered every time
+
+  function handleSelectMovie(id) {
+    setSelectedId((selectedId) => (id === selectedId ? null : id));
+  }
+
+  function handleCloseMovie() {
+    setSelectedId(null);
+  }
+
   useEffect(
     function () {
       async function fetchMovies() {
@@ -84,7 +127,7 @@ export default function App() {
           setIsLoading(false);
         }
       }
-      if (query.length < 3) {
+      if (!query.length || query.length < 3) {
         setMovies([]);
         setError("");
         return;
@@ -98,18 +141,29 @@ export default function App() {
   return (
     <>
       <NavBar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </NavBar>
       <Main>
         <Box>
           {isLoading && <Loader />}
-          {!isLoading && !error && <MovieList movies={movies} />}
+          {!isLoading && !error && (
+            <MovieList movies={movies} onSelectMovie={handleSelectMovie} />
+          )}
           {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
-          <WatchedSummary watched={watched} />
-          <WatchedList watched={watched} />
+          {selectedId ? (
+            <MovieDetails
+              selectedId={selectedId}
+              onCloseMovie={handleCloseMovie}
+            />
+          ) : (
+            <>
+              <WatchedSummary watched={watched} />
+              <WatchedList watched={watched} />
+            </>
+          )}
         </Box>
       </Main>
     </>
@@ -142,9 +196,7 @@ function Logo() {
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
-
+function Search({ query, setQuery }) {
   return (
     <input
       className="search"
@@ -207,19 +259,19 @@ function WatchedBox() {
 }
 */
 
-function MovieList({ movies }) {
+function MovieList({ movies, onSelectMovie }) {
   return (
-    <ul className="list">
+    <ul className="list list-movies">
       {movies?.map((movie) => (
-        <Movie movie={movie} key={movie.imdbID} />
+        <Movie movie={movie} key={movie.imdbID} onSelectMovie={onSelectMovie} />
       ))}
     </ul>
   );
 }
 
-function Movie({ movie }) {
+function Movie({ movie, onSelectMovie }) {
   return (
-    <li>
+    <li onClick={() => onSelectMovie(movie.imdbID)}>
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
       <div>
@@ -280,6 +332,17 @@ function WatchedMoviesList({ watched }) {
         <WatchedMovie movie={movie} key={movie.imdbID} />
       ))}
     </ul>
+  );
+}
+
+function MovieDetails({ selectedId, onCloseMovie }) {
+  return (
+    <div className="details">
+      <button className="btn-back" onClick={onCloseMovie}>
+        &larr;
+      </button>
+      {selectedId}
+    </div>
   );
 }
 
