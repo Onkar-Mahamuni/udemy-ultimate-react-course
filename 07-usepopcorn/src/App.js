@@ -55,9 +55,16 @@ export default function App() {
           if (data.Response === "False") throw new Error("Movie not found");
 
           setMovies(data.Search);
+
+          // Error should be set as empty if no error occurs
+          setError("");
         } catch (err) {
-          console.error(err.message);
-          setError(err.message);
+          // The aborted request throws an error from fetch, hence we want to ignore that
+          // This can be done as below
+          if (err.name !== "AbortError") {
+            setError(err.message);
+            console.log(err.message);
+          }
         } finally {
           setIsLoading(false);
         }
@@ -67,10 +74,12 @@ export default function App() {
         setError("");
         return;
       }
+      handleCloseMovie();
       fetchMovies();
 
       // And in cleanup function, we abort the controller
       return function () {
+        // Cencells the ongoing request
         controller.abort();
       };
     },
@@ -255,7 +264,6 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   const [userRating, setUserRating] = useState("");
   // Check if movie is from watched list
   const isWatched = watched.map((movie) => movie.imdbId).includes(selectedId);
-  console.log(isWatched);
   // Get user rating if it is watched
   const watchedUserRating = watched.find(
     (movie) => movie.imdbId === selectedId
@@ -286,7 +294,30 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       userRating,
     };
     onAddWatched(newWatchedMovie);
+    onCloseMovie();
   }
+
+  useEffect(
+    function () {
+      function callback(e) {
+        if (e.code === "Escape") {
+          onCloseMovie();
+        }
+      }
+      // We have to close the movie when the user press the escape key
+      document.addEventListener("keydown", callback); // This is DOM Manipulation
+      // As we do such outside events in useEffects, react team calls it as an Escape Hatch
+      // We specifically named this function so it can be reused in cleanup
+
+      return function () {
+        document.removeEventListener("keydown", callback);
+      };
+      // We also need to remove the event listener in cleaup to avoid adding a new event lister everytime we open a movie
+      // and not to keep all of them open at a time
+      // This might become a big memory problem in a big app
+    },
+    [onCloseMovie]
+  );
 
   useEffect(
     function () {
