@@ -282,32 +282,6 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     Genre: genre,
   } = movie;
 
-  // /* eslint-disable*/ //To disable es lint error
-  // if (imdbRating > 8) [isTop, setIsTop] = useState(true);
-  // // This throws an error because of conditional use of hook
-
-  // If we want above code to work
-  const [isTop, setIsTop] = useState(imdbRating > 8);
-  console.log(isTop); // Will always give false because it gets loaded on initial render
-  // That time imdbRating will be undefined
-
-  useEffect(
-    function () {
-      setIsTop(imdbRating > 8);
-    },
-    [imdbRating]
-  ); // This will work as expected as it will get rerendered on change
-
-  // But below implementation with derived state will be a better solution to this situation
-
-  const isTop2 = imdbRating > 8;
-  console.log(isTop2); // This will work as expectd
-  // because this variable will get re-generated each time the component gets re-rendered
-
-  // if (imdbRating > 8) return <p>Greatest Ever!</p>;
-  // // This also throws error because we are returning the function from here
-  // // it disturbs the hooks order and renders the hooks below conditionally
-
   // Handle add to movie list along with rating
   function handleAdd() {
     const newWatchedMovie = {
