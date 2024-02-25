@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StarRating from "./StarRating";
 
 const average = (arr) =>
@@ -8,11 +8,17 @@ const KEY = "217ef51b";
 
 export default function App() {
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null); // Added here because it is to be shared across components
+  // const [watched, setWatched] = useState([]);
+  const [watched, setWatched] = useState(function () {
+    const storedValue = localStorage.getItem("watched");
+    return JSON.parse(storedValue);
+  }); //useState can also take a function as an argument. Function must be a pure function without arguments
+  // and that function should return something which is set as state.
+  // This function is only executed at initial render
 
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
@@ -24,11 +30,26 @@ export default function App() {
 
   function handleAddWatched(movie) {
     setWatched((watched) => [...watched, movie]);
+
+    // Store the updated data to local storage
+    // localStorage.setItem("watched", watched) // This will not work coz of stale state
+    localStorage.setItem("watched", JSON.stringify([...watched, movie]));
+    // we must do this to add items to the
   }
 
   function handleDeleteWatched(id) {
     setWatched((watched) => watched.filter((movie) => movie.imdbId !== id));
   }
+
+  useEffect(
+    function () {
+      localStorage.setItem("watched", JSON.stringify(watched));
+    },
+    [watched]
+  ); // We are doing this because we need to add/remove as the watchedlist is updated
+
+  // useState(localStorage.getItem("watched")); // We should not do this as it is calling the funciton directly and not passing it
+  // // because this will be executed at every render which is a bad practice
 
   useEffect(
     function () {
@@ -151,6 +172,35 @@ function Logo() {
 }
 
 function Search({ query, setQuery }) {
+  const inputEl = useRef(null);
+
+  useEffect(
+    function () {
+      function callback(e) {
+        if (document.activeElement === inputEl.current) {
+          return;
+        }
+        if (e.code === "Enter") {
+          inputEl.current.focus();
+          setQuery("");
+        }
+      }
+      document.addEventListener("keydown", callback);
+      // console.log(inputEl.current);
+      return () => document.addEventListener("keydown", callback);
+    },
+    [setQuery] // setQuery is a prop and we are using that in effect so we can add it in dependencies
+    // Although this is a function so it will not chnage
+  );
+  // We need an effect because ref will get the DOM element after rendering (DOM gets loaded)
+
+  // useEffect(function () {
+  //   const el = document.querySelector(".search");
+  //   console.log(el);
+  //   el.focus();
+  // }, []); // This will focus on the element as we require
+  // // This is not the react way to handle this
+
   return (
     <input
       className="search"
@@ -158,6 +208,7 @@ function Search({ query, setQuery }) {
       placeholder="Search movies..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
     />
   );
 }
@@ -219,8 +270,8 @@ function WatchedList({ watched, onDeleteWatched }) {
     <ul className="list">
       {watched.map((movie) => (
         <WatchedMovie
-          movie={movie}
           key={movie.imdbID}
+          movie={movie}
           onDeleteWatched={onDeleteWatched}
         />
       ))}
@@ -262,6 +313,19 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState("");
+  const [avgRating, setAvgRating] = useState(0);
+
+  const countRef = useRef(0);
+  // let count = 0;
+
+  useEffect(
+    function () {
+      if (userRating) countRef.current++;
+      // if (userRating) count++; // This will not work because count will get reset to 0 at each render
+    }, // We are increasing the ref count each time the rating changes, except first mount
+    [userRating]
+  );
+
   // Check if movie is from watched list
   const isWatched = watched.map((movie) => movie.imdbId).includes(selectedId);
   // Get user rating if it is watched
@@ -282,31 +346,31 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     Genre: genre,
   } = movie;
 
-  // /* eslint-disable*/ //To disable es lint error
-  // if (imdbRating > 8) [isTop, setIsTop] = useState(true);
-  // // This throws an error because of conditional use of hook
+  // // /* eslint-disable*/ //To disable es lint error
+  // // if (imdbRating > 8) [isTop, setIsTop] = useState(true);
+  // // // This throws an error because of conditional use of hook
 
-  // If we want above code to work
-  const [isTop, setIsTop] = useState(imdbRating > 8);
-  console.log(isTop); // Will always give false because it gets loaded on initial render
-  // That time imdbRating will be undefined
+  // // If we want above code to work
+  // const [isTop, setIsTop] = useState(imdbRating > 8);
+  // console.log(isTop); // Will always give false because it gets loaded on initial render
+  // // That time imdbRating will be undefined
 
-  useEffect(
-    function () {
-      setIsTop(imdbRating > 8);
-    },
-    [imdbRating]
-  ); // This will work as expected as it will get rerendered on change
+  // useEffect(
+  //   function () {
+  //     setIsTop(imdbRating > 8);
+  //   },
+  //   [imdbRating]
+  // ); // This will work as expected as it will get rerendered on change
 
-  // But below implementation with derived state will be a better solution to this situation
+  // // But below implementation with derived state will be a better solution to this situation
 
-  const isTop2 = imdbRating > 8;
-  console.log(isTop2); // This will work as expectd
-  // because this variable will get re-generated each time the component gets re-rendered
+  // const isTop2 = imdbRating > 8;
+  // console.log(isTop2); // This will work as expectd
+  // // because this variable will get re-generated each time the component gets re-rendered
 
-  // if (imdbRating > 8) return <p>Greatest Ever!</p>;
-  // // This also throws error because we are returning the function from here
-  // // it disturbs the hooks order and renders the hooks below conditionally
+  // // if (imdbRating > 8) return <p>Greatest Ever!</p>;
+  // // // This also throws error because we are returning the function from here
+  // // // it disturbs the hooks order and renders the hooks below conditionally
 
   // Handle add to movie list along with rating
   function handleAdd() {
@@ -318,9 +382,15 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       imdbRating: Number(imdbRating),
       runtime: Number(runtime.split(" ").at(0)),
       userRating,
+      countRatingDecisions: countRef.current,
     };
     onAddWatched(newWatchedMovie);
-    onCloseMovie();
+    // onCloseMovie();
+    // setAvgRating(Number(imdbRating));
+    // // setAvgRating((avgRating + userRating) / 2); // This gives a wrong rating as state setting is async
+    // // // Avg is calculated on a staled state
+    // setAvgRating((avgRating) => (avgRating + userRating) / 2);
+    // // This will give the correct average
   }
 
   useEffect(
@@ -402,7 +472,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
               </p>
             </div>
           </header>
-
+          <p>{avgRating}</p>
           <section>
             <div className="rating">
               {!isWatched ? (
