@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import StarRating from "./StarRating";
+import { useMovies } from "./useMovies";
+import { useLocalStorageState } from "./useLocalStorageState";
+import { useKey } from "./useKey";
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
@@ -7,18 +10,16 @@ const average = (arr) =>
 const KEY = "217ef51b";
 
 export default function App() {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null); // Added here because it is to be shared across components
   // const [watched, setWatched] = useState([]);
-  const [watched, setWatched] = useState(function () {
-    const storedValue = localStorage.getItem("watched");
-    return JSON.parse(storedValue);
-  }); //useState can also take a function as an argument. Function must be a pure function without arguments
-  // and that function should return something which is set as state.
-  // This function is only executed at initial render
+
+  const [movies, isLoading, error] = useMovies(query);
+  // const [movies, isLoading, error] = useMovies(query, handleCloseMovie);
+  // We could pass handleCloseMovie before declaration because we have written it as funciton handleCloseMovie()
+  // If we would have written as const handleCloseMovie = () => {}, we would have to declare it before passing here
+  debugger;
+  const [watched, setWatched] = useLocalStorageState([], "watched");
 
   function handleSelectMovie(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
@@ -41,72 +42,8 @@ export default function App() {
     setWatched((watched) => watched.filter((movie) => movie.imdbId !== id));
   }
 
-  useEffect(
-    function () {
-      localStorage.setItem("watched", JSON.stringify(watched));
-    },
-    [watched]
-  ); // We are doing this because we need to add/remove as the watchedlist is updated
-
   // useState(localStorage.getItem("watched")); // We should not do this as it is calling the funciton directly and not passing it
   // // because this will be executed at every render which is a bad practice
-
-  useEffect(
-    function () {
-      // AbortController is a browser functionality we use to abort the requests
-      const controller = new AbortController();
-
-      async function fetchMovies() {
-        try {
-          // Setting the isLoading state to true before starting to fetch the data
-          setIsLoading(true);
-          setError("");
-
-          //We connected the abort controller to our query by passing the signal as second argument to the fetch function
-          const res = await fetch(
-            `https://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
-            { signal: controller.signal }
-          );
-
-          if (!res.ok)
-            throw new Error("Something went wrong with fetching movies");
-
-          const data = await res.json();
-
-          if (data.Response === "False") throw new Error("Movie not found");
-
-          setMovies(data.Search);
-
-          // Error should be set as empty if no error occurs
-          setError("");
-        } catch (err) {
-          // The aborted request throws an error from fetch, hence we want to ignore that
-          // This can be done as below
-          if (err.name !== "AbortError") {
-            setError(err.message);
-            console.log(err.message);
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      if (!query.length || query.length < 3) {
-        setMovies([]);
-        setError("");
-        return;
-      }
-      handleCloseMovie();
-      fetchMovies();
-
-      // And in cleanup function, we abort the controller
-      return function () {
-        // Cencells the ongoing request
-        controller.abort();
-      };
-    },
-    [query]
-    // This will fetch the data whenever the query state changes
-  );
 
   return (
     <>
@@ -174,24 +111,33 @@ function Logo() {
 function Search({ query, setQuery }) {
   const inputEl = useRef(null);
 
-  useEffect(
-    function () {
-      function callback(e) {
-        if (document.activeElement === inputEl.current) {
-          return;
-        }
-        if (e.code === "Enter") {
-          inputEl.current.focus();
-          setQuery("");
-        }
-      }
-      document.addEventListener("keydown", callback);
-      // console.log(inputEl.current);
-      return () => document.addEventListener("keydown", callback);
-    },
-    [setQuery] // setQuery is a prop and we are using that in effect so we can add it in dependencies
-    // Although this is a function so it will not chnage
-  );
+  useKey("Enter", function () {
+    if (document.activeElement === inputEl.current) {
+      return;
+    }
+    inputEl.current.focus();
+    setQuery("");
+  });
+
+  // useEffect(
+  //   function () {
+  //     function callback(e) {
+  //       if (e.code === "Enter") {
+  //         if (document.activeElement === inputEl.current) {
+  //           return;
+  //         }
+  //         inputEl.current.focus();
+  //         setQuery("");
+  //       }
+  //     }
+  //     document.addEventListener("keydown", callback);
+  //     // console.log(inputEl.current);
+  //     return () => document.addEventListener("keydown", callback);
+  //   },
+  //   [setQuery] // setQuery is a prop and we are using that in effect so we can add it in dependencies
+  //   // Although this is a function so it will not chnage
+  // ); // This code is moved to useKey() custom hook
+
   // We need an effect because ref will get the DOM element after rendering (DOM gets loaded)
 
   // useEffect(function () {
@@ -385,7 +331,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
       countRatingDecisions: countRef.current,
     };
     onAddWatched(newWatchedMovie);
-    // onCloseMovie();
+    onCloseMovie();
     // setAvgRating(Number(imdbRating));
     // // setAvgRating((avgRating + userRating) / 2); // This gives a wrong rating as state setting is async
     // // // Avg is calculated on a staled state
@@ -393,27 +339,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddWatched, watched }) {
     // // This will give the correct average
   }
 
-  useEffect(
-    function () {
-      function callback(e) {
-        if (e.code === "Escape") {
-          onCloseMovie();
-        }
-      }
-      // We have to close the movie when the user press the escape key
-      document.addEventListener("keydown", callback); // This is DOM Manipulation
-      // As we do such outside events in useEffects, react team calls it as an Escape Hatch
-      // We specifically named this function so it can be reused in cleanup
-
-      return function () {
-        document.removeEventListener("keydown", callback);
-      };
-      // We also need to remove the event listener in cleaup to avoid adding a new event lister everytime we open a movie
-      // and not to keep all of them open at a time
-      // This might become a big memory problem in a big app
-    },
-    [onCloseMovie]
-  );
+  useKey("Escape", onCloseMovie);
 
   useEffect(
     function () {
