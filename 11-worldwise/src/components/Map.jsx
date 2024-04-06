@@ -50,7 +50,7 @@ function Map() {
       <MapContainer
         className={styles.map}
         center={mapPosition}
-        zoom={6}
+        zoom={10}
         scrollWheelZoom={true}
         // Enable scroll wheel zoom
       >

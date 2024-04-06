@@ -1,30 +1,6 @@
 {
   "cities": [
     {
-      "cityName": "Lisbon",
-      "country": "Portugal",
-      "emoji": "🇵🇹",
-      "date": "2027-10-31T15:59:59.138Z",
-      "notes": "My favorite city so far!",
-      "position": {
-        "lat": 38.727881642324164,
-        "lng": -9.140900099907554
-      },
-      "id": 73930385
-    },
-    {
-      "cityName": "Madrid",
-      "country": "Spain",
-      "emoji": "🇪🇸",
-      "date": "2027-07-15T08:22:53.976Z",
-      "notes": "",
-      "position": {
-        "lat": 40.46635901755316,
-        "lng": -3.7133789062500004
-      },
-      "id": 17806751
-    },
-    {
       "cityName": "Berlin",
       "country": "Germany",
       "emoji": "🇩🇪",
@@ -37,18 +13,6 @@
       "id": 98443197
     },
     {
-      "cityName": "Pune",
-      "country": "India",
-      "emoji": "🇮🇳",
-      "date": "2024-03-26T18:09:34.727Z",
-      "notes": "Home",
-      "position": {
-        "lat": "18.526814739377098",
-        "lng": "73.86110553414737"
-      },
-      "id": 98443198
-    },
-    {
       "cityName": "Wai",
       "country": "India",
       "emoji": "🇮🇳",
@@ -59,6 +23,30 @@
         "lng": "73.79829873416023"
       },
       "id": 98443199
+    },
+    {
+      "cityName": "Satara",
+      "country": "India",
+      "emoji": "🇮🇳",
+      "date": "2024-03-27T06:17:09.087Z",
+      "notes": "Nice",
+      "position": {
+        "lat": "17.701046495245055",
+        "lng": "74.02284316575914"
+      },
+      "id": 98443200
+    },
+    {
+      "cityName": "Ahmadnagar",
+      "country": "India",
+      "emoji": "🇮🇳",
+      "date": "2024-03-27T15:16:09.593Z",
+      "notes": "Nice City",
+      "position": {
+        "lat": "19.098431209172855",
+        "lng": "74.7911619900105"
+      },
+      "id": 98443201
     }
   ]
 }
