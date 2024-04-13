@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { faker } from "@faker-js/faker";
 
 function createRandomPost() {
@@ -34,18 +34,23 @@ function PostProvider({ children }) {
   function handleClearPosts() {
     setPosts([]);
   }
-  // 2) PROVIDE VALUE TO CHILD COMPONENTS
+
+  const value = useMemo(() => {
+    return {
+      posts: searchedPosts,
+      onAddPost: handleAddPost,
+      onClearPosts: handleClearPosts,
+      searchQuery,
+      setSearchQuery,
+    };
+  }, [searchedPosts, searchQuery]);
+  // This now will memoize the object unless it changes to avoid wasted re-rendering of components
+
   return (
-    <PostContext.Provider
-      value={{
-        posts: searchedPosts,
-        onAddPost: handleAddPost,
-        onClearPosts: handleClearPosts,
-        searchQuery,
-        setSearchQuery,
-      }}
-    >
+    // 2) PROVIDE VALUE TO CHILD COMPONENTS
+    <PostContext.Provider value={value}>
       {children}
+      {/* Children will not re-render automatically, hence it is already optimized */}
     </PostContext.Provider>
   );
 }
