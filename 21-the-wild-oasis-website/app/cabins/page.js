@@ -1,20 +1,36 @@
-import Counter from "../components/Counter";
+// import CabinCard from "../_components/CabinCard";
 
-// We can directly mark the component function as async in the server component
+import CabinCard from "../_components/CabinCard";
+import { getCabins } from "../_lib/data-service";
+
+export const metadata = {
+  title: "Cabins",
+};
+
 export default async function Page() {
-  // And can fetch the data directly inside the root of the component
-  const res = await fetch('https://jsonplaceholder.typicode.com/users');
-  const data = await res.json();
-
-  // This is a server component so data will not be logged in the browser but in the terminal
-  console.log(data);
+  const cabins = await getCabins();
 
   return (
     <div>
-      <h1>Cabins Page</h1>
-      <ul>{data.map(user=><li key={user.id}>{user.name}</li>)}</ul>
-      {/* This is how we can call a client compoent inside a server component as usual but server comp cannot be called inside client comp */}
-      <Counter users={data}/>
+      <h1 className="text-4xl mb-5 text-accent-400 font-medium">
+        Our Luxury Cabins
+      </h1>
+      <p className="text-primary-200 text-lg mb-10">
+        Cozy yet luxurious cabins, located right in the heart of the Italian
+        Dolomites. Imagine waking up to beautiful mountain views, spending your
+        days exploring the dark forests around, or just relaxing in your private
+        hot tub under the stars. Enjoy nature&apos;s beauty in your own little
+        home away from home. The perfect spot for a peaceful, calm vacation.
+        Welcome to paradise.
+      </p>
+
+      {cabins.length > 0 && (
+        <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 xl:gap-14">
+          {cabins.map((cabin) => (
+            <CabinCard cabin={cabin} key={cabin.id} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
